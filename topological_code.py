@@ -48,9 +48,9 @@ class topological_code:
         We only apply erasure errors on data qubits?
         """
         np.random.seed(seed)
-        random = np.random.rand(self.size**2)
-        for i, qubit in enumerate(self.get_data_qubits()):
-            if random[i]< p_error_rate:
+        random = np.random.rand(self.size, self.size)
+        for qubit in self.get_data_qubits():
+            if random[qubit[0]][qubit[1]]< p_error_rate:
                 # print("applying errors")
                 self.erasure_set.add(qubit)
                 error_random = np.random.rand()
@@ -217,7 +217,7 @@ class surface_code(topological_code):
                 stab.extend([(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])])
         return stab
 
-    def get_adjacent_data_qubits(self, stab, type):
+    def get_adjacent_data_qubits(self, stab):
         return [(stab[0]+y, stab[1]+x) for y, x in [(1,0), (-1,0), (0,1), (0,-1)]]
 
 class toric_code(topological_code):
