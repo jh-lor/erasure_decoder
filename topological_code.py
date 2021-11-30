@@ -50,17 +50,18 @@ class topological_code:
         np.random.seed(seed)
         random = np.random.rand(self.size, self.size)
         for qubit in self.get_data_qubits():
-            if random[qubit[0]][qubit[1]]< p_error_rate:
+            random_qubit = random[qubit[0]][qubit[1]]
+            if random_qubit < p_error_rate:
                 # print("applying errors")
                 self.erasure_set.add(qubit)
-                error_random = np.random.rand()
+                error_random = random_qubit/p_error_rate
                 if error_random < 1/4:
-                    self.operations["X"].symmetric_difference_update(qubit)
+                    self.operations["X"].symmetric_difference_update([qubit])
                 elif error_random < 1/2:
-                    self.operations["X"].symmetric_difference_update(qubit)
-                    self.operations["Z"].symmetric_difference_update(qubit)
+                    self.operations["X"].symmetric_difference_update([qubit])
+                    self.operations["Z"].symmetric_difference_update([qubit])
                 elif error_random <3/4:
-                    self.operations["Z"].symmetric_difference_update(qubit)
+                    self.operations["Z"].symmetric_difference_update([qubit])
         return
 
     def has_logical_error(self):
@@ -115,7 +116,7 @@ class surface_code(topological_code):
         }
 
     def measure_syndrome(self):
-        for qubit in self.erasure_set:
+        for qubit in self.get_data_qubits():
             self.update_syndrome_qubit(qubit)
         return
 
@@ -136,7 +137,7 @@ class surface_code(topological_code):
         if qubit in self.operations["X"]:
             # X error, caught by Z stabilizers
             if qubit[0]%2:
-                flipped_syndromes = [(qubit[0] - 1, qubit[1], qubit[0] + 1, qubit[1])]
+                flipped_syndromes = [(qubit[0] - 1, qubit[1]), (qubit[0] + 1, qubit[1])]
             else:
                 if qubit[0]> 0 and qubit[0] < self.size - 1:
                     flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
@@ -166,7 +167,7 @@ class surface_code(topological_code):
             self.peel_tree_dfs(qubits_set, child)
             node.subtree_syndrome_sum += child.subtree_syndrome_sum
         if node.subtree_syndrome_sum%2:
-            qubits_set.add(node.parent_qubit)
+            qubits_set.add([node.parent_qubit])
 
 
     def construct_erasure_tree(self):
@@ -189,10 +190,10 @@ class surface_code(topological_code):
         curr_node.coordinate = curr
         curr_node.parent_qubit = parent_qubit
         curr_node.syndrome = curr_node.coordinate in self.syndromes[stab_type]
-        for qubit in self.get_adjacent_data_qubits(self,curr_node.coordinate):
+        for qubit in self.get_adjacent_data_qubits(curr_node.coordinate):
             if qubit in erasure_copy:
                 erasure_copy.remove(qubit)
-                for stab in self.get_adjacent_stabilizers(self,qubit, stab_type):
+                for stab in self.get_adjacent_stabilizers(qubit, stab_type):
                     if stab not in visited:
                         curr_node.children.append(self.erasure_tree_dfs(visited, qubit, erasure_copy, stab, stab_type))
         return curr_node
