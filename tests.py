@@ -86,7 +86,7 @@ def test_surface_code_logical_errors():
     else: 
         print(f"FAILED: Detected non-existent error on a 5x5 surface code")
 
-    print("Logical Error Test 8:")
+    print("Logical Error Test 9:")
     code = topological_code.surface_code(5)
     code.operations["Z"].update([(0,2), (2,2), (4,2)])
     code.operations["X"].update([(0,2), (2,2), (4,2)])
@@ -94,6 +94,22 @@ def test_surface_code_logical_errors():
         print("PASSED")
     else: 
         print(f"FAILED: Failed to detect Z error on a 5x5 surface code")
+
+        print("Logical Error Test 10:")
+    code = topological_code.surface_code(5)
+    code.operations["X"].update([(0,0), (0,2), (0,4)])
+    if code.has_logical_error():
+        print("PASSED")
+    else: 
+        print(f"FAILED: Failed to detect X error on side of a 5x5 surface code")
+
+        print("Logical Error Test 11:")
+    code = topological_code.surface_code(5)
+    code.operations["Z"].update([(0,0), (2,0), (4,0)])
+    if code.has_logical_error():
+        print("PASSED")
+    else: 
+        print(f"FAILED: Failed to detect Z error on side of a 5x5 surface code")
     return failed_list
 
 def test_add_random_errors(type):
@@ -129,7 +145,81 @@ def test_decoder(type):
             print(f"X stabilizers: {new_code.syndromes['X']}")
             print(f"Z stabilizers: {new_code.syndromes['Z']}")
         else:
-            print(f"PASSED")
+            print(f"PASSED: High weight X error \nLogical error: {new_code.has_logical_error()}")
+    
+
+    print("Decoder Test 2:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(0,2),(4,2)])
+    new_code.operations["Z"].update([(0,2),(4,2)])
+    new_code.measure_syndrome()
+    if not new_code.error_detected():
+        print(f"FAILED: Error Not Detected")
+    else:
+        new_code.erasure_decoder()
+        new_code.measure_syndrome()
+        if new_code.error_detected():
+            print(f"FAILED: Error not corrected")
+            print(new_code.operations)
+            print(f"X stabilizers: {new_code.syndromes['X']}")
+            print(f"Z stabilizers: {new_code.syndromes['Z']}")
+        else:
+            print(f"PASSED: High weight Z error \nLogical error:{new_code.has_logical_error()}")
+
+    print("Decoder Test 3:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(0,2)])
+    new_code.operations["Z"].update([(0,2)])
+    new_code.measure_syndrome()
+    if not new_code.error_detected():
+        print(f"FAILED: Error Not Detected")
+    else:
+        new_code.erasure_decoder()
+        new_code.measure_syndrome()
+        if new_code.error_detected():
+            print(f"FAILED: Error not corrected")
+            print(new_code.operations)
+            print(f"X stabilizers: {new_code.syndromes['X']}")
+            print(f"Z stabilizers: {new_code.syndromes['Z']}")
+        else:
+            print(f"PASSED: Low weight Z error \nLogical error: {new_code.has_logical_error()}")
+
+    print("Decoder Test 4:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(2,0)])
+    new_code.operations["X"].update([(2,0)])
+    new_code.measure_syndrome()
+    if not new_code.error_detected():
+        print(f"FAILED: Error Not Detected")
+    else:
+        new_code.erasure_decoder()
+        new_code.measure_syndrome()
+        if new_code.error_detected():
+            print(f"FAILED: Error not corrected")
+            print(new_code.operations)
+            print(f"X stabilizers: {new_code.syndromes['X']}")
+            print(f"Z stabilizers: {new_code.syndromes['Z']}")
+        else:
+            print(f"PASSED: Low weight X error \nLogical error: {new_code.has_logical_error()}")
+
+    print("Decoder Test 5:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(1,1), (3,3)])
+    new_code.operations["X"].update([(1,1), (3,3)])
+    new_code.operations["Z"].update([(1,1), (3,3)])
+    new_code.measure_syndrome()
+    if not new_code.error_detected():
+        print(f"FAILED: Error Not Detected")
+    else:
+        new_code.erasure_decoder()
+        new_code.measure_syndrome()
+        if new_code.error_detected():
+            print(f"FAILED: Error not corrected")
+            print(f"Operations: {new_code.operations}")
+            print(f"X stabilizers: {new_code.syndromes['X']}")
+            print(f"Z stabilizers: {new_code.syndromes['Z']}")
+        else:
+            print(f"PASSED: Low weight Y error \nLogical error: {new_code.has_logical_error()}")
 
 def main(args):
     logical_error_failed = test_surface_code_logical_errors()
