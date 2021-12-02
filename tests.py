@@ -336,6 +336,23 @@ def test_decoder(type):
     print(f"Z stabilizers: {new_code.syndromes['Z']}")
     print(f"PASSED: Logical Z error with X and Z error \nLogical error: {new_code.has_logical_error()}")
 
+    print("Decoder Test 10:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(0,0), (1,1)])
+    new_code.operations["Z"].update([(0,0), (1,1)])
+    # new_code.operations["Z"].update([(1,1), (3,3)])
+    new_code.measure_syndrome()
+    print(new_code.syndromes)
+    new_code.erasure_decoder()
+    new_code.measure_syndrome()
+    print(f"Operations: {new_code.operations}")
+    print(f"X stabilizers: {new_code.syndromes['X']}")
+    print(f"Z stabilizers: {new_code.syndromes['Z']}")
+    print(f"Logical Z error with X and Z error \nLogical error: {new_code.has_logical_error()}")
+
+
+
+
 def test_measurement():
     print("Measurement Test 1:")
     new_code = topological_code.surface_code(5)
@@ -421,7 +438,6 @@ def main(args):
         print(f"Logical Error Test Failed: ".join(logical_error_failed))
     else: 
         print("Passed Logical Error Checks")
-
     test_add_random_errors(args.type)
     test_tree_construction(args.type)
     test_measurement()

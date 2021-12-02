@@ -56,7 +56,9 @@ class topological_code:
             if random_qubit < p_error_rate:
                 # print("applying errors")
                 self.erasure_set.add(qubit)
+                # print(random_qubit)
                 error_random = random_qubit/p_error_rate
+                # print(error_random)
                 if error_random < 1/4:
                     self.operations["X"].symmetric_difference_update([qubit])
                 elif error_random < 1/2:
@@ -78,7 +80,6 @@ class topological_code:
                     if self.logical_error_DFS(visited, error_type, qubit):
                         return True
         return False
-
     
     def logical_error_DFS(self, visited, error_type, qubit):
         if qubit not in visited:
@@ -176,7 +177,7 @@ class surface_code(topological_code):
         Construct tree, peel the tree
         """
         self.construct_erasure_tree()
-        # print(self.root_list)
+        print(self.root_list)
         for stab_type in ["X", "Z"]:
             while self.root_list[stab_type]:
                 chosen_qubits = set()
@@ -193,7 +194,7 @@ class surface_code(topological_code):
             self.peel_tree_dfs(qubits_set, child)
             node.subtree_syndrome_sum += child.subtree_syndrome_sum
         if node.subtree_syndrome_sum%2:
-            # print(f"Trying to add the parent of: {node.info()}")
+            print(f"Trying to add the parent of: {node.info()}")
             qubits_set.add(node.parent_qubit)
 
 

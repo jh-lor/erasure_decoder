@@ -60,6 +60,7 @@ def main(args):
         print(f"For size {size}:")
         df = simulator.simulate(size, args.lower_bound, args.upper_bound, args.n_points, args.n_samples, args.code)
         df["logical_error_rate"] = (df["uncorrected_error"] + df["undetected_error"])/args.n_samples
+        print(df)
         print(df["logical_error_rate"])
         size += 2
     return

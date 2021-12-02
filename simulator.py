@@ -14,7 +14,8 @@ def simulate(size, lower_bound, upper_bound, n_points, n_samples, code):
             "no_error":np.zeros(n_points),
             "undetected_error":np.zeros(n_points), 
             "corrected_error":np.zeros(n_points), 
-            "uncorrected_error":np.zeros(n_points)
+            "uncorrected_error":np.zeros(n_points),
+            "syndrome_error":np.zeros(n_points)
             }
             )
     df = df.set_index("physical_error_rate")
@@ -38,6 +39,13 @@ def simulate(size, lower_bound, upper_bound, n_points, n_samples, code):
             else:
             # we use the decoding algorithm if there is any error
                 encoding.erasure_decoder()
+                encoding.measure_syndrome()
+                if encoding.error_detected():
+                    print(f"For Size {size}")
+                    print(f"Symdromes: {encoding.syndromes}")
+                    print(f"Operations: {encoding.operations}")
+                    print(f"Erasure Set: {encoding.erasure_set}")
+                    break
                 if encoding.has_logical_error():
                     df.loc[phys_error_rate, "uncorrected_error"] += 1
                 else:
