@@ -1,6 +1,7 @@
 import argparse
 import simulator
-import matplotlib.pyplot as plt
+from datetime import datetime
+import os
 """
 Simulating the pseudo-threshold and threshold for the Lienar Time Maximum Likelihood Decoding of the Surace Code over the Quantum Erasure Channel by Delfosse and Zemor (2017). 
 
@@ -19,50 +20,26 @@ Structure of program:
 2. Algorithm. takes in the code state and outputs maximumlikelihoood decoding
 3. Iterator. Check whether error is corrected
 """
-
-# def pseudo_threshold_plot(data, time, mode):
-    
-#     expected_logical_dict = {
-#         "code_capacity": 1,
-#         "initialization_error": 2/3,
-#         "measurement_error": 2/3
-#     }
-
-#     physical_error_rates, no_errors, undetected_errors, uncorrected_errors, corrected_errors = data
-#     total_repetitions = no_errors + undetected_errors + uncorrected_errors + corrected_errors
-#     fig, ax = plt.subplots()
-
-#     simulation_logical_error_rate = (undetected_errors + uncorrected_errors)/total_repetitions
-    
-#     proportions = [simulation_logical_error_rate*100]
-#     labels = ["Simulation Logical Error Rate"]
-#     ax.stackplot(physical_error_rates*100, proportions,
-#                 labels = labels)
-    
-#     expected_logical_error_rate = physical_error_rates*expected_logical_dict[mode]
-#     ax.plot(physical_error_rates*100, physical_error_rates*expected_logical_dict[mode]*100, label = f"Logical Error Rate for one qubit: y = {expected_logical_dict[mode]:0.2f}x")
-    
-#     ax.legend(loc = 'upper left')
-#     ax.set_title(f'Logical Error Rate {mode}')
-#     # plt.xticks(np.arange(100*min(physical_error_rate), 100*max(physical_error_rate)+1, 5))
-#     ax.set_xlabel('Physical Error Rate')
-#     ax.set_ylabel('Logical Error Rate')
-#     fig.savefig(f'{plots_path}Logical Error Rate Plot {mode}_{time}.png')
-
-#     diff_list = simulation_logical_error_rate - expected_logical_error_rate
-#     for i in range(len(diff_list)-2):
-#         if diff_list[i]*diff_list[i+1] < 0:
-#             return (physical_error_rates[i]+physical_error_rates[i+1])/2
+df_path = "./df"
 
 def main(args):
+    start = datetime.now().strftime("%m%d%Y_%H%M%S")
+    if not os.path.exists(df_path):
+        os.mkdir(df_path)
+
+    size_list = []
     size = args.low_size
     while size <= args.high_size:
-        print(f"For size {size}:")
-        df = simulator.simulate(size, args.lower_bound, args.upper_bound, args.n_points, args.n_samples, args.code)
-        df["logical_error_rate"] = (df["uncorrected_error"] + df["undetected_error"])/args.n_samples
-        print(df)
-        print(df["logical_error_rate"])
-        size += 2
+        size_list.append(size)
+        size +=2
+
+    df = simulator.simulate(size_list, args.lower_bound, args.upper_bound, args.n_points, args.n_samples, args.code)
+    df["logical_error_rate"] = (df["uncorrected_error"] + df["undetected_error"])/args.n_samples
+    df["better"] = df["effective_error_rate"] > df["logical_error_rate"]
+    print(df)
+    print(df[["logical_error_rate", "effective_error_rate", "better"]])
+    df.to_pickle(f"{df_path}/{start}_{args.n_samples}.pkl")
+    # _{args.low_size}_{args.high_size}_{args.lower_bound}_{args.upper_bound}_{args.n_points}_{args.n_samples}_{args.code}.csv")
     return
 
 if __name__ == "__main__":
