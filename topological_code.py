@@ -132,13 +132,13 @@ class surface_code(topological_code):
     def measure_syndrome(self):
         self.reset_syndrome()
         for stabilizers, stab_type in [(self.get_Z_stabilizers, "Z"), (self.get_X_stabilizers, "X")]:
-            for qubit in stabilizers():
+            for stab in stabilizers():
                 adj_count = 0
                 for y_d, x_d in [(1,0), (-1,0), (0,1), (0,-1)]:
-                    if (qubit[0] + y_d, qubit[1] + x_d) in self.operations["X" if stab_type == "Z" else "Z"]:
+                    if (stab[0] + y_d, stab[1] + x_d) in self.operations["X" if stab_type == "Z" else "Z"]:
                         adj_count += 1
                 if adj_count%2:
-                    self.syndromes[stab_type].add(qubit)
+                    self.syndromes[stab_type].add(stab)
 
 
         return
@@ -182,7 +182,7 @@ class surface_code(topological_code):
                 chosen_qubits = set()
                 curr_root = self.root_list[stab_type].pop()
                 self.peel_tree_dfs(chosen_qubits, curr_root)
-                # print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
+                print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
                 self.operations["X" if stab_type == "Z" else "Z"].symmetric_difference_update(chosen_qubits)
         
         return
