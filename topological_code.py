@@ -120,13 +120,14 @@ class TreeNode():
     def __repr__(self) -> str:
         return str(self.coordinate)
 
+    def info(self):
+        return f"Qubit = {self.coordinate}, Syn = {self.syndrome}, Children = {self.children}, Parent_qbit = {self.parent_qubit}"
+
+
 class surface_code(topological_code):
     def __init__(self, size):
         super().__init__(size)
-        self.root_list = {
-            "X": [],
-            "Z": []
-        }
+        self.root_list = None
 
     def measure_syndrome(self):
         self.reset_syndrome()
@@ -139,51 +140,49 @@ class surface_code(topological_code):
                 if adj_count%2:
                     self.syndromes[stab_type].add(qubit)
 
-        # for qubit in self.get_data_qubits():
-        #     self.update_syndrome_qubit(qubit)
+
         return
 
-    def update_syndrome_qubit(self, qubit):
-        if qubit in self.operations["Z"]:
-            # Z error, caught by X stabilizers
-            if qubit[0]%2:
-                flipped_syndromes = [(qubit[0], qubit[1]-1), (qubit[0], qubit[1]+1)]
-            else:
-                if qubit[0]> 0 and qubit[0] < self.size - 1:
-                    flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
-                elif qubit[0] == 0:
-                    flipped_syndromes = [(qubit[0] + 1, qubit[1])]
-                else:
-                    flipped_syndromes = [(qubit[0] - 1, qubit[1])]
-            self.syndromes["X"].symmetric_difference_update(flipped_syndromes)
+    # def update_syndrome_qubit(self, qubit):
+    #     if qubit in self.operations["Z"]:
+    #         # Z error, caught by X stabilizers
+    #         if qubit[0]%2:
+    #             flipped_syndromes = [(qubit[0], qubit[1]-1), (qubit[0], qubit[1]+1)]
+    #         else:
+    #             if qubit[0]> 0 and qubit[0] < self.size - 1:
+    #                 flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
+    #             elif qubit[0] == 0:
+    #                 flipped_syndromes = [(qubit[0] + 1, qubit[1])]
+    #             else:
+    #                 flipped_syndromes = [(qubit[0] - 1, qubit[1])]
+    #         self.syndromes["X"].symmetric_difference_update(flipped_syndromes)
 
-        if qubit in self.operations["X"]:
-            # X error, caught by Z stabilizers
-            if qubit[0]%2:
-                flipped_syndromes = [(qubit[0] - 1, qubit[1]), (qubit[0] + 1, qubit[1])]
-            else:
-                if qubit[0]> 0 and qubit[0] < self.size - 1:
-                    flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
-                elif qubit[0] == 0:
-                    flipped_syndromes = [(qubit[0] + 1, qubit[1])]
-                else:
-                    flipped_syndromes = [(qubit[0] - 1, qubit[1])]
-            self.syndromes["Z"].symmetric_difference_update(flipped_syndromes)
-        return
+    #     if qubit in self.operations["X"]:
+    #         # X error, caught by Z stabilizers
+    #         if qubit[0]%2:
+    #             flipped_syndromes = [(qubit[0] - 1, qubit[1]), (qubit[0] + 1, qubit[1])]
+    #         else:
+    #             if qubit[0]> 0 and qubit[0] < self.size - 1:
+    #                 flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
+    #             elif qubit[0] == 0:
+    #                 flipped_syndromes = [(qubit[0] + 1, qubit[1])]
+    #             else:
+    #                 flipped_syndromes = [(qubit[0] - 1, qubit[1])]
+    #         self.syndromes["Z"].symmetric_difference_update(flipped_syndromes)
+    #     return
 
     def erasure_decoder(self):
         """
         Construct tree, peel the tree
         """
-        self.root_list = {"X": [],"Z": []}
         self.construct_erasure_tree()
-        print(self.root_list)
+        # print(self.root_list)
         for stab_type in ["X", "Z"]:
             while self.root_list[stab_type]:
                 chosen_qubits = set()
                 curr_root = self.root_list[stab_type].pop()
                 self.peel_tree_dfs(chosen_qubits, curr_root)
-                print(f"Chosen qubits {chosen_qubits} for {curr_root}")
+                # print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
                 self.operations["X" if stab_type == "Z" else "Z"].symmetric_difference_update(chosen_qubits)
         
         return
@@ -194,11 +193,12 @@ class surface_code(topological_code):
             self.peel_tree_dfs(qubits_set, child)
             node.subtree_syndrome_sum += child.subtree_syndrome_sum
         if node.subtree_syndrome_sum%2:
+            # print(f"Trying to add the parent of: {node.info()}")
             qubits_set.add(node.parent_qubit)
 
 
     def construct_erasure_tree(self):
-
+        self.root_list = {"X": [],"Z": []}
         # loop this for X and Z
         for stab_type in ["X", "Z"]:
             # copy erasure set
@@ -208,7 +208,7 @@ class surface_code(topological_code):
             while erasure_copy:
                 curr_qubit = next(iter(erasure_copy))
                 curr_stab = self.get_adjacent_stabilizers(curr_qubit, stab_type)[0]
-                self.root_list[stab_type].append(self.erasure_tree_dfs(visited, None, erasure_copy, curr_stab, stab_type))
+                self.root_list[stab_type].append(self.erasure_tree_dfs(visited, curr_qubit, erasure_copy, curr_stab, stab_type))
         return
 
     def erasure_tree_dfs(self, visited, parent_qubit, erasure_copy, curr, stab_type):
@@ -230,9 +230,9 @@ class surface_code(topological_code):
         if stab_type == "X":
             if qubit[0] %2 == 0:
                 if qubit[0] < self.size -1:
-                    stab.append((qubit[0] - 1, qubit[1]))
-                if qubit[0] > 0:
                     stab.append((qubit[0] + 1, qubit[1]))
+                if qubit[0] > 0:
+                    stab.append((qubit[0] - 1, qubit[1]))
             else:
                 stab.extend([(qubit[0], qubit[1]-1), (qubit[0], qubit[1] + 1)])
         else:

@@ -128,6 +128,59 @@ def test_add_random_errors(type):
         print(f"X stabilizers: {new_code.syndromes['X']}")
     return
 
+def print_erasure_tree(code):
+    for stab_type in ["X", "Z"]:
+        for i, roots in enumerate(code.root_list[stab_type]):
+            print(f"Stab Type {stab_type} {i}-th root:")
+            print_root(roots)
+
+def print_root(node):
+    print(node.info())
+    for child in node.children:
+        print_root(child)
+
+def test_tree_construction(type):
+    print("Tree Constructor Test 1:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(2,0), (2,4)])
+    new_code.operations["X"].update([(2,0),(2,4)])
+    new_code.measure_syndrome()
+    new_code.construct_erasure_tree()
+    for stab_type in ["X", "Z"]:
+        for i, roots in enumerate(new_code.root_list[stab_type]):
+            print(f"Stab Type {stab_type} {i}-th root:")
+            print_root(roots)
+
+    print("Tree Constructor Test 2:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(2,0), (2,4)])
+    new_code.operations["Z"].update([(2,0),(2,4)])
+    new_code.measure_syndrome()
+    new_code.construct_erasure_tree()
+    for stab_type in ["X", "Z"]:
+        for i, roots in enumerate(new_code.root_list[stab_type]):
+            print(f"Stab Type {stab_type} {i}-th root:")
+            print_root(roots)
+
+    print("Tree Constructor Test 3:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(2,0), (2,2)])
+    new_code.operations["Z"].update([(2,0),(2,2)])
+    new_code.measure_syndrome()
+    new_code.construct_erasure_tree()
+    for stab_type in ["X", "Z"]:
+        for i, roots in enumerate(new_code.root_list[stab_type]):
+            print(f"Stab Type {stab_type} {i}-th root:")
+            print_root(roots)
+
+    print("Tree Constructor Test 4:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(0,2),(4,2)])
+    new_code.operations["Z"].update([(0,2),(4,2)])
+    new_code.measure_syndrome()
+    new_code.construct_erasure_tree()
+    print_erasure_tree(new_code)
+
 def test_decoder(type):
     print("Decoder Test 1:")
     new_code = topological_code.surface_code(5)
@@ -157,7 +210,10 @@ def test_decoder(type):
         print(f"FAILED: Error Not Detected")
     else:
         new_code.erasure_decoder()
+        print(new_code.root_list)
+        print_erasure_tree(new_code)
         new_code.measure_syndrome()
+        
         if new_code.error_detected():
             print(f"FAILED: Error not corrected")
             print(new_code.operations)
@@ -221,6 +277,25 @@ def test_decoder(type):
         else:
             print(f"PASSED: Low weight Y error \nLogical error: {new_code.has_logical_error()}")
 
+    print("Decoder Test 6:")
+    new_code = topological_code.surface_code(5)
+    new_code.erasure_set.update([(0,2), (4,2)])
+    new_code.operations["X"].update([(0,2), (4,2)])
+    # new_code.operations["Z"].update([(1,1), (3,3)])
+    new_code.measure_syndrome()
+    if not new_code.error_detected():
+        print(f"FAILED: Error Not Detected")
+    else:
+        new_code.erasure_decoder()
+        new_code.measure_syndrome()
+        if new_code.error_detected():
+            print(f"FAILED: Error not corrected")
+            print(f"Operations: {new_code.operations}")
+            print(f"X stabilizers: {new_code.syndromes['X']}")
+            print(f"Z stabilizers: {new_code.syndromes['Z']}")
+        else:
+            print(f"PASSED: High weight X error \nLogical error: {new_code.has_logical_error()}")
+
 def main(args):
     logical_error_failed = test_surface_code_logical_errors()
     if logical_error_failed:
@@ -229,6 +304,7 @@ def main(args):
         print("Passed Logical Error Checks")
 
     test_add_random_errors(args.type)
+    test_tree_construction(args.type)
     test_decoder(args.type)
     return
 
