@@ -31,7 +31,7 @@ def main(args):
     size = args.low_size
     while size <= args.high_size:
         size_list.append(size)
-        size +=2
+        size += args.interval
 
     df = simulator.simulate(size_list, args.lower_bound, args.upper_bound, args.n_points, args.n_samples, args.code)
     df["logical_error_rate"] = (df["uncorrected_error"] + df["undetected_error"])/args.n_samples
@@ -47,6 +47,7 @@ if __name__ == "__main__":
     Time Maximum Likelihood Decoding of the Surace Code over the Quantum Erasure Channel by Delfosse and Zemor (2017). ")
     parser.add_argument("low_size", type = int, help = "Simulating square lattice of qubits, size is number of qubits on one side")
     parser.add_argument("high_size", type = int, help = "Simulating square lattice of qubits, size is number of qubits on one side")
+    parser.add_argument("interval", type = int, help = "Intervals between sizes")
     parser.add_argument("lower_bound", type = float, help = "lower bound of range of physical error")
     parser.add_argument("upper_bound", type = float, help = "upper bound of range of physical error")
     parser.add_argument("n_points", type = int, help = "number of physical error rates to simulate")
