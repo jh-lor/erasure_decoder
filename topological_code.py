@@ -75,6 +75,8 @@ class topological_code:
         # error = {"X": False, "Z": False}
         for error_type in ["X", "Z"]:
             visited = set()
+            # we check the first boundary if there is an error of the appropriate type
+            # print(self.boundary[error_type])
             for qubit in self.boundary[error_type][0]:
                 if qubit in self.operations[error_type]:
                     if self.logical_error_DFS(visited, error_type, qubit):
@@ -85,8 +87,11 @@ class topological_code:
         if qubit not in visited:
             # only visit new nodes
             visited.add(qubit)
+            # print(f"Visiting {qubit}")
             if qubit in self.boundary[error_type][1]:
-                return True
+                if qubit in self.operations[error_type]:
+                    # print(f"Connected to second boundary:{qubit}")
+                    return True
             for y,x in self.adjacency[error_type]:
                 # for each adjacent qubit
                 next_qubit = (qubit[0] + y, qubit[1] + x)
@@ -133,15 +138,14 @@ class surface_code(topological_code):
     def measure_syndrome(self):
         self.reset_syndrome()
         for stabilizers, stab_type in [(self.get_Z_stabilizers, "Z"), (self.get_X_stabilizers, "X")]:
+            operation = "X" if stab_type == "Z" else "Z"
             for stab in stabilizers():
                 adj_count = 0
                 for y_d, x_d in [(1,0), (-1,0), (0,1), (0,-1)]:
-                    if (stab[0] + y_d, stab[1] + x_d) in self.operations["X" if stab_type == "Z" else "Z"]:
+                    if (stab[0] + y_d, stab[1] + x_d) in self.operations[operation]:
                         adj_count += 1
                 if adj_count%2:
                     self.syndromes[stab_type].add(stab)
-
-
         return
 
     # def update_syndrome_qubit(self, qubit):
