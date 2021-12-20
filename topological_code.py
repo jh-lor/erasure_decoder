@@ -22,6 +22,11 @@ class topological_code:
             "Z": self.get_Z_boundary()
             }
 
+        self.open_qubits = {
+            "X": self.get_X_open(),
+            "Z": self.get_Z_open()
+        }
+
     def get_data_qubits(self):
         if self.size%2== 1:
             return [(y, 2*k + y%2) for y in range(self.size) for k in range(self.size//2 + (y+1)%2)]
@@ -36,11 +41,19 @@ class topological_code:
 
     def get_X_boundary(self):
         return [(2*y,0) for y in range((self.size+1)//2)], \
-            [(2*y + (self.size + 1)%2, self.size - 1) for y in range((self.size+1)//2)]  
+            [(2*y + (self.size + 1)%2, self.size-1) for y in range((self.size+1)//2)]  
     
     def get_Z_boundary(self):
         return [(0,2*x) for x in range((self.size+1)//2)], \
-            [(self.size - 1, 2*x + (self.size + 1)%2) for x in range((self.size+1)//2)]  
+            [(self.size-1, 2*x + (self.size + 1)%2) for x in range((self.size+1)//2)]  
+
+    def get_X_open(self):
+        return [(2*y,-1) for y in range((self.size+1)//2)], \
+            [(2*y + (self.size + 1)%2, self.size) for y in range((self.size+1)//2)]   
+
+    def get_Z_open(self):
+        return [(-1,2*x) for x in range((self.size+1)//2)], \
+            [(self.size, 2*x + (self.size + 1)%2) for x in range((self.size+1)//2)]  
 
     def set_random_seed(seed = 42):
         np.random.seed(seed)
@@ -149,33 +162,6 @@ class surface_code(topological_code):
                 
         return
 
-    # def update_syndrome_qubit(self, qubit):
-    #     if qubit in self.operations["Z"]:
-    #         # Z error, caught by X stabilizers
-    #         if qubit[0]%2:
-    #             flipped_syndromes = [(qubit[0], qubit[1]-1), (qubit[0], qubit[1]+1)]
-    #         else:
-    #             if qubit[0]> 0 and qubit[0] < self.size - 1:
-    #                 flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
-    #             elif qubit[0] == 0:
-    #                 flipped_syndromes = [(qubit[0] + 1, qubit[1])]
-    #             else:
-    #                 flipped_syndromes = [(qubit[0] - 1, qubit[1])]
-    #         self.syndromes["X"].symmetric_difference_update(flipped_syndromes)
-
-    #     if qubit in self.operations["X"]:
-    #         # X error, caught by Z stabilizers
-    #         if qubit[0]%2:
-    #             flipped_syndromes = [(qubit[0] - 1, qubit[1]), (qubit[0] + 1, qubit[1])]
-    #         else:
-    #             if qubit[0]> 0 and qubit[0] < self.size - 1:
-    #                 flipped_syndromes = [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
-    #             elif qubit[0] == 0:
-    #                 flipped_syndromes = [(qubit[0] + 1, qubit[1])]
-    #             else:
-    #                 flipped_syndromes = [(qubit[0] - 1, qubit[1])]
-    #         self.syndromes["Z"].symmetric_difference_update(flipped_syndromes)
-    #     return
 
     def erasure_decoder(self):
         """
@@ -207,18 +193,25 @@ class surface_code(topological_code):
         self.root_list = {"X": [],"Z": []}
 
         # loop this for X and Z
-        for stab_type, boundaries in [("X", self.get_Z_boundary()), ("Z", self.get_X_boundary())]:
-            combined_boundaries = boundaries[0] + boundaries[1]
+        for stab_type in ["X", "Z"]:
+            open_boundaries = self.open_qubits[stab_type]
+            combined_boundaries = open_boundaries[0] + open_boundaries[1]
             # copy erasure set
             erasure_copy = self.erasure_set.copy()
             visited = set()
+
+            # we search for all trees that are touching the boundary
+            for open_qubit in combined_boundaries:
+                if not open_qubit in visited:
+                    boundary_tree = self.erasure_tree_dfs(visited, None, erasure_copy,open_qubit, stab_type)
+                    if not boundary_tree.children:
+                        # check if there is an erased edge leading from boundary tree
+                        self.root_list[stab_type].append(boundary_tree)
             # append root of erasure tree while deleting visited erasures
+            # we search for all the erasures not touching boundary
             while erasure_copy:
                 # print(erasure_copy)
                 curr_qubit = next(iter(erasure_copy))
-                for boundary in combined_boundaries:
-                    if boundary in erasure_copy:
-                        curr_qubit = boundary
                 # print(curr_qubit)
                 curr_stab = self.get_adjacent_stabilizers(curr_qubit, stab_type)[0]
                 self.root_list[stab_type].append(self.erasure_tree_dfs(visited, curr_qubit, erasure_copy, curr_stab, stab_type))
@@ -240,24 +233,18 @@ class surface_code(topological_code):
         return curr_node
 
     def get_adjacent_stabilizers(self, qubit, stab_type):
-        stab = []
+        # we make this return the open stabs
         if stab_type == "X":
             if qubit[0] %2 == 0:
-                if qubit[0] < self.size -1:
-                    stab.append((qubit[0] + 1, qubit[1]))
-                if qubit[0] > 0:
-                    stab.append((qubit[0] - 1, qubit[1]))
+                return [(qubit[0] + 1, qubit[1]),(qubit[0] - 1, qubit[1])]
             else:
-                stab.extend([(qubit[0], qubit[1]-1), (qubit[0], qubit[1] + 1)])
+                return [(qubit[0], qubit[1]-1), (qubit[0], qubit[1] + 1)]
         else:
             if qubit[1]%2 == 0:
-                if qubit[1] < self.size - 1:
-                    stab.append((qubit[0], qubit[1] + 1))
-                if qubit[1] > 0:
-                    stab.append((qubit[0], qubit[1] - 1))
+                return [(qubit[0], qubit[1] + 1), (qubit[0], qubit[1] - 1)]
             else:
-                stab.extend([(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])])
-        return stab
+                return [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
+    
 
     def get_adjacent_data_qubits(self, stab):
         return [(stab[0]+y, stab[1]+x) for y, x in [(1,0), (-1,0), (0,1), (0,-1)]]
