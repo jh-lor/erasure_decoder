@@ -146,6 +146,7 @@ class surface_code(topological_code):
                         adj_count += 1
                 if adj_count%2:
                     self.syndromes[stab_type].add(stab)
+                
         return
 
     # def update_syndrome_qubit(self, qubit):
