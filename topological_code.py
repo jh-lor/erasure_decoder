@@ -204,7 +204,8 @@ class surface_code(topological_code):
             for open_qubit in combined_boundaries:
                 if not open_qubit in visited:
                     boundary_tree = self.erasure_tree_dfs(visited, None, erasure_copy,open_qubit, stab_type)
-                    if not boundary_tree.children:
+
+                    if len(boundary_tree.children) > 0:
                         # check if there is an erased edge leading from boundary tree
                         self.root_list[stab_type].append(boundary_tree)
             # append root of erasure tree while deleting visited erasures
