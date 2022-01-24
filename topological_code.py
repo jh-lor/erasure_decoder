@@ -174,9 +174,8 @@ class surface_code(topological_code):
                 chosen_qubits = set()
                 curr_root = self.root_list[stab_type].pop()
                 self.peel_tree_dfs(chosen_qubits, curr_root)
-                # print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
+                print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
                 self.operations["X" if stab_type == "Z" else "Z"].symmetric_difference_update(chosen_qubits)
-        
         return
 
     def peel_tree_dfs(self, qubits_set, node):
@@ -185,13 +184,12 @@ class surface_code(topological_code):
             self.peel_tree_dfs(qubits_set, child)
             node.subtree_syndrome_sum += child.subtree_syndrome_sum
         if node.subtree_syndrome_sum%2:
-            # print(f"Trying to add the parent of: {node.info()}")
+            print(f"Trying to add the parent of: {node.info()}")
             qubits_set.add(node.parent_qubit)
+        print(f"{node}: {node.subtree_syndrome_sum}")
 
-#
     def construct_erasure_tree(self):
         self.root_list = {"X": [],"Z": []}
-
         # loop this for X and Z
         for stab_type in ["X", "Z"]:
             open_boundaries = self.open_qubits[stab_type]
@@ -199,12 +197,11 @@ class surface_code(topological_code):
             # copy erasure set
             erasure_copy = self.erasure_set.copy()
             visited = set()
-
             # we search for all trees that are touching the boundary
             for open_qubit in combined_boundaries:
                 if not open_qubit in visited:
+                    # print(f"{stab_type}: {open_qubit}")
                     boundary_tree = self.erasure_tree_dfs(visited, None, erasure_copy,open_qubit, stab_type)
-
                     if len(boundary_tree.children) > 0:
                         # check if there is an erased edge leading from boundary tree
                         self.root_list[stab_type].append(boundary_tree)
@@ -214,7 +211,7 @@ class surface_code(topological_code):
                 # print(erasure_copy)
                 curr_qubit = next(iter(erasure_copy))
                 # print(curr_qubit)
-                curr_stab = self.get_adjacent_stabilizers(curr_qubit, stab_type)[0]
+                curr_stab = self.get_adjacent_stabilizers(cu rr_qubit, stab_type)[0]
                 self.root_list[stab_type].append(self.erasure_tree_dfs(visited, curr_qubit, erasure_copy, curr_stab, stab_type))
         return
 
@@ -237,12 +234,22 @@ class surface_code(topological_code):
         # we make this return the open stabs
         if stab_type == "X":
             if qubit[0] %2 == 0:
-                return [(qubit[0] + 1, qubit[1]),(qubit[0] - 1, qubit[1])]
+                ret = []
+                if qubit[0]>0:
+                    ret.append((qubit[0] - 1, qubit[1]))
+                if qubit[0]< self.size- 1:
+                    ret.append((qubit[0] + 1, qubit[1]))
+                return ret
             else:
                 return [(qubit[0], qubit[1]-1), (qubit[0], qubit[1] + 1)]
         else:
             if qubit[1]%2 == 0:
-                return [(qubit[0], qubit[1] + 1), (qubit[0], qubit[1] - 1)]
+                ret = []
+                if qubit[1]>0:
+                    ret.append((qubit[0], qubit[1] - 1))
+                if qubit[1]<self.size-1:
+                    ret.append((qubit[0], qubit[1] + 1))
+                return ret
             else:
                 return [(qubit[0]-1, qubit[1]), (qubit[0] + 1, qubit[1])]
     
