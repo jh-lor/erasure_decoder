@@ -65,26 +65,28 @@ def main(args):
         (5, "surface", "X error = (2,0), (2,4)", False, [(2,0),(2,4)], [], [(2,0),(2,4)]),
         (5, "surface", "Z error = (0,2),(4,2)", False, [], [(0,2),(4,2)], [(0,2),(4,2)]),
         (5, "surface", "X error = (0,2) Er = (0,2), (4,2)", False, [(0,2)], [], [(0,2),(4,2)]),
-        (5, "surface", "Z error = (0,2) Er = (0,2), (2,2),(4,2)", None, [], [(0,2)], [(0,2),(2,2), (4,2)]),
+        (5, "surface", "Z error = (0,2) Er = (0,2), (2,2),(4,2)", True, [], [(0,2)], [(0,2),(2,2), (4,2)]),
         (5, "surface", "X error = (1,1),(3,3), Z error = (1,1), (3,3) Er = (1,1), (3,3)", False, [(1,1), (3,3)], [(1,1), (3,3)], [(1,1), (3,3)]),
-        (5, "surface", "X error = (2,0),(2,4), Er = (2,0),(2,2), (2,4)", None, [(2,0), (2,4)], [], [(2,0),(2,2), (2,4)]),
-        (5, "surface", "X error = (2,2), Er = (2,0),(2,2), (2,4)", None, [(2,2)], [], [(2,0),(2,2), (2,4)]),
-        (5, "surface", "Z error = (0,2),(4,2), Er = (0,2),(2,2), (4,2)", None, [(0,2), (4,2)], [], [(0,2),(2,2), (4,2)]),
-        (5, "surface", "X error = (2,2), Z = (0,2), (2,2), (4,2), Er = (2,0),(2,2), (2,4)", None, [(2,2)], [(2,0), (2,2), (4,2)], [(2,0),(2,2), (4,2)]),
-        (5, "surface", "X error = [(2,2), (1,1)], Z = [(0,2), (2,2), (4,2), (1,1),(3,3)], Er = [(0,2),(2,2), (4,2), (1,1), (3,3)])", None, [(2,2), (1,1)], [(0,2), (2,2), (4,2), (1,1),(3,3)], [(0,2),(2,2), (4,2), (1,1), (3,3)]),
+        (5, "surface", "X error = (2,0),(2,4), Er = (2,0),(2,2), (2,4)", True, [(2,0), (2,4)], [], [(2,0),(2,2), (2,4)]),
+        (5, "surface", "X error = (2,2), Er = (2,0),(2,2), (2,4)", True, [(2,2)], [], [(2,0),(2,2), (2,4)]),
+        (5, "surface", "Z error = (0,2),(4,2), Er = (0,2),(2,2), (4,2)", True, [(0,2), (4,2)], [], [(0,2),(2,2), (4,2)]),
+        (5, "surface", "X error = (2,2), Z = (0,2), (2,2), (4,2), Er = (2,0),(2,2), (2,4)", True, [(2,2)], [(2,0), (2,2), (4,2)], [(2,0),(2,2), (4,2)]),
+        (5, "surface", "X error = [(2,2), (1,1)], Z = [(0,2), (2,2), (4,2), (1,1),(3,3)], Er = [(0,2),(2,2), (4,2), (1,1), (3,3)])", True, [(2,2), (1,1)], [(0,2), (2,2), (4,2), (1,1),(3,3)], [(0,2),(2,2), (4,2), (1,1), (3,3)]),
+        (5, "surface", "[(1,1),(3,3),(3,1),(1,3)], [], [(1,1),(3,3),(3,1),(1,3)]", False, [(1,1),(3,3),(3,1),(1,3)], [], [(1,1),(3,3),(3,1),(1,3)]),
     ]
     decoder_failed_list = test_decoder(decoder_cases)
     if decoder_failed_list:
         print("Failed Decoder Error Checks")
         for test in decoder_failed_list:
             print(test)
+            print(test.code.has_logical_error())
     else: 
         print("Passed Decoder Checks")
 
     print("Specific Test")
     code = topological_code.surface_code(5)
-    code.operations["Z"].update([(4,2)])
-    code.erasure_set.update([(3,1), (2,2), (4,2)])
+    code.operations["X"].update([(2,0),(2,4)])
+    code.erasure_set.update([(2,0), (2,2), (2,4)])
     code.measure_syndrome()
     print(code.operations)
     print(code.syndromes)
@@ -94,7 +96,6 @@ def main(args):
     code.measure_syndrome()
     print(code.operations)
     print(code.syndromes)
-
     return
 
 if __name__ == "__main__":
