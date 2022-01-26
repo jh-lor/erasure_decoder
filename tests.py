@@ -1,6 +1,7 @@
+from random import Random
 import topological_code
 import argparse
-from UnitTester import LogicalErrorTester, DecoderTester
+from UnitTester import LogicalErrorTester, DecoderTester, RandomErrorTester
 
 def get_topological_code(type, size):
     if type == "toric":
@@ -27,13 +28,37 @@ def print_root(node):
     for child in node.children:
         print_root(child)
 
-def test_decoder(test_cases):
+def test_decoder(test_cases, verbose = False):
     failed_list = []
     for test in test_cases:
-        tester = DecoderTester(*test) 
+        tester = DecoderTester(*test, verbose) 
         if not tester:
             failed_list.append(tester)
     return failed_list
+
+def test_random_errors(test_cases):
+    test_list = []
+    for test in test_cases:
+        tester = RandomErrorTester(*test)
+        tester.test()
+        test_list.append(tester)
+    return test_list
+
+def indepth_test():
+    print("Specific Test")
+    code = topological_code.surface_code(5)
+    code.operations["X"].update([(2,0),(2,4)])
+    code.erasure_set.update([(2,0), (2,2), (2,4)])
+    code.measure_syndrome()
+    print(code.operations)
+    print(code.syndromes)
+    code.construct_erasure_tree()
+    print_erasure_tree(code)
+    code.erasure_decoder()
+    code.measure_syndrome()
+    print(code.operations)
+    print(code.syndromes)
+    return code
 
 def main(args):
     test_cases = [
@@ -49,6 +74,7 @@ def main(args):
         (5, args.type, "Snake Z error on 5x5 surface", True, [], [(0,0), (2,0), (4,0), (0,2), (2,2), (4,2), (0,4), (2,4), (4,4)]),
         (5, args.type, "Diagonal X error on 5x5 surface", True, [(0,0), (1,1), (2,2), (3,3), (4,4)], []),
         (5, args.type, "Diagonal Z error on 5x5 surface", True, [],  [(0,0), (1,1), (2,2), (3,3), (4,4)]),
+        (5, args.type, "Sparse errors on 5x5 surface", False, [(1,1),(3,3)],[(1,1),(3,3)])
     ]
     logical_error_failed = test_logical_errors(test_cases)
     if logical_error_failed:
@@ -63,18 +89,20 @@ def main(args):
     # test_measurement()
     decoder_cases = [
         (5, "surface", "X error = (2,0), (2,4)", False, [(2,0),(2,4)], [], [(2,0),(2,4)]),
-        (5, "surface", "Z error = (0,2),(4,2)", False, [], [(0,2),(4,2)], [(0,2),(4,2)]),
+        (5, "surface", "Z error = (0,2), (4,2)", False, [], [(0,2),(4,2)], [(0,2),(4,2)]),
         (5, "surface", "X error = (0,2) Er = (0,2), (4,2)", False, [(0,2)], [], [(0,2),(4,2)]),
-        (5, "surface", "Z error = (0,2) Er = (0,2), (2,2),(4,2)", True, [], [(0,2)], [(0,2),(2,2), (4,2)]),
+        (5, "surface", "Z error = (0,2) Er = (0,2), (2,2),(4,2)", None, [], [(0,2)], [(0,2),(2,2), (4,2)]),
         (5, "surface", "X error = (1,1),(3,3), Z error = (1,1), (3,3) Er = (1,1), (3,3)", False, [(1,1), (3,3)], [(1,1), (3,3)], [(1,1), (3,3)]),
-        (5, "surface", "X error = (2,0),(2,4), Er = (2,0),(2,2), (2,4)", True, [(2,0), (2,4)], [], [(2,0),(2,2), (2,4)]),
-        (5, "surface", "X error = (2,2), Er = (2,0),(2,2), (2,4)", True, [(2,2)], [], [(2,0),(2,2), (2,4)]),
-        (5, "surface", "Z error = (0,2),(4,2), Er = (0,2),(2,2), (4,2)", True, [(0,2), (4,2)], [], [(0,2),(2,2), (4,2)]),
-        (5, "surface", "X error = (2,2), Z = (0,2), (2,2), (4,2), Er = (2,0),(2,2), (2,4)", True, [(2,2)], [(2,0), (2,2), (4,2)], [(2,0),(2,2), (4,2)]),
-        (5, "surface", "X error = [(2,2), (1,1)], Z = [(0,2), (2,2), (4,2), (1,1),(3,3)], Er = [(0,2),(2,2), (4,2), (1,1), (3,3)])", True, [(2,2), (1,1)], [(0,2), (2,2), (4,2), (1,1),(3,3)], [(0,2),(2,2), (4,2), (1,1), (3,3)]),
+        (5, "surface", "X error = (2,0),(2,4), Er = (2,0),(2,2), (2,4)", None, [(2,0), (2,4)], [], [(2,0),(2,2), (2,4)]),
+        (5, "surface", "X error = (2,2), Er = (2,0),(2,2), (2,4)", None, [(2,2)], [], [(2,0),(2,2), (2,4)]),
+        (5, "surface", "Z error = (0,2),(4,2), Er = (0,2),(2,2), (4,2)", None, [(0,2), (4,2)], [], [(0,2),(2,2), (4,2)]),
+        (5, "surface", "X error = (2,2), Z = (0,2), (2,2), (4,2), Er = (2,0),(2,2), (2,4)", None, [(2,2)], [(2,0), (2,2), (4,2)], [(2,0),(2,2), (4,2)]),
+        (5, "surface", "X error = [(2,2), (1,1)], Z = [(0,2), (2,2), (4,2), (1,1),(3,3)], Er = [(0,2),(2,2), (4,2), (1,1), (3,3)])", None, [(2,2), (1,1)], [(0,2), (2,2), (4,2), (1,1),(3,3)], [(0,2),(2,2), (4,2), (1,1), (3,3)]),
         (5, "surface", "[(1,1),(3,3),(3,1),(1,3)], [], [(1,1),(3,3),(3,1),(1,3)]", False, [(1,1),(3,3),(3,1),(1,3)], [], [(1,1),(3,3),(3,1),(1,3)]),
+        (5, "surface", "Side Error", False, [(0,0),(2,0),(4,0),(0,4),(2,4),(4,4)],[],[(0,0),(2,0),(4,0),(0,4),(2,4),(4,4)]),
+        (5, "surface", "Side Error", False, [],[(0,0),(0,2),(0,4),(4,4),(4,2),(4,0)],[(0,0),(0,2),(0,4),(4,4),(4,2),(4,0)])
     ]
-    decoder_failed_list = test_decoder(decoder_cases)
+    decoder_failed_list = test_decoder(decoder_cases, True)
     if decoder_failed_list:
         print("Failed Decoder Error Checks")
         for test in decoder_failed_list:
@@ -83,19 +111,16 @@ def main(args):
     else: 
         print("Passed Decoder Checks")
 
-    print("Specific Test")
-    code = topological_code.surface_code(5)
-    code.operations["X"].update([(2,0),(2,4)])
-    code.erasure_set.update([(2,0), (2,2), (2,4)])
-    code.measure_syndrome()
-    print(code.operations)
-    print(code.syndromes)
-    code.construct_erasure_tree()
-    print_erasure_tree(code)
-    code.erasure_decoder()
-    code.measure_syndrome()
-    print(code.operations)
-    print(code.syndromes)
+    random_error_cases = [
+        (5, "surface", "Size = 5, p_error = 0.25", True, 0.25, 10000),
+        (5, "surface", "Size = 5, p_error = 0.5", True, 0.5, 10000),
+        (9, "surface", "Size = 9, p_error = 0.25", True, 0.25, 10000),
+        (9, "surface", "Size = 9, p_error = 0.5", True, 0.5, 10000),
+        (13, "surface", "Size = 13, p_error = 0.25", True, 0.25, 10000),
+        (13, "surface", "Size = 13, p_error = 0.5", True, 0.5, 10000),
+    ]
+    test_random_errors(random_error_cases)
+
     return
 
 if __name__ == "__main__":
@@ -103,189 +128,3 @@ if __name__ == "__main__":
     parser.add_argument("type", choices = ["toric", "surface"], help = "Enter toric or surface")
     args = parser.parse_args()
     main(args)
-
-
-# def test_add_random_errors(type):
-#     size = 5
-#     new_code = get_topological_code(type, size)
-#     new_code.add_erasure_errors(1)
-#     new_code.measure_syndrome()
-    
-#     print(f"Generated Erasure errors for size {size}")
-#     # print(new_code.erasure_set)
-#     if len(new_code.erasure_set) != (size**2+1)//2:
-#         print(f"Incorrect number of erasure errors: Expected {(size**2+1)//2} but got {len(new_code.erasure_set)}")
-#     print(f"Erasure Set {new_code.erasure_set}")
-#     print(f"X errors: {new_code.operations['X']}")
-#     print(f"Z stabilizers: {new_code.syndromes['Z']}")
-#     print(f"Z errors: {new_code.operations['Z']}")
-#     print(f"X stabilizers: {new_code.syndromes['X']}")
-#     return
-
-# def test_tree_construction(type):
-#     print("Tree Constructor Test 1:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(2,0), (2,4)])
-#     new_code.operations["X"].update([(2,0),(2,4)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     for stab_type in ["X", "Z"]:
-#         for i, roots in enumerate(new_code.root_list[stab_type]):
-#             print(f"Stab Type {stab_type} {i}-th root:")
-#             print_root(roots)
-
-#     print("Tree Constructor Test 2:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(2,0), (2,4)])
-#     new_code.operations["Z"].update([(2,0),(2,4)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     for stab_type in ["X", "Z"]:
-#         for i, roots in enumerate(new_code.root_list[stab_type]):
-#             print(f"Stab Type {stab_type} {i}-th root:")
-#             print_root(roots)
-
-#     print("Tree Constructor Test 3:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(2,0), (2,2)])
-#     new_code.operations["Z"].update([(2,0),(2,2)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     for stab_type in ["X", "Z"]:
-#         for i, roots in enumerate(new_code.root_list[stab_type]):
-#             print(f"Stab Type {stab_type} {i}-th root:")
-#             print_root(roots)
-
-#     print("Tree Constructor Test 4:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(0,2),(4,2)])
-#     new_code.operations["Z"].update([(0,2),(4,2)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 5:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(0,0),(1,1)])
-#     new_code.operations["Z"].update([(0,0),(1,1)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 6:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(0,2),(1,3)])
-#     new_code.operations["Z"].update([(0,2),(1,3)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 7:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(3,3),(4,4)])
-#     new_code.operations["Z"].update([(3,3),(4,4)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 8:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(0,0),(0,2),(0,4)])
-#     new_code.operations["X"].update([(0,0),(0,2),(0,4)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 9:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(3, 1), (2, 0)])
-#     new_code.operations["X"].update([(3, 1), (2, 0)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-
-#     print("Tree Constructor Test 10:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.erasure_set.update([(3, 1), (2, 0), (4,0)])
-#     new_code.operations["X"].update([(3, 1), (2, 0), (4,0)])
-#     new_code.measure_syndrome()
-#     new_code.construct_erasure_tree()
-#     print_erasure_tree(new_code)
-# def test_measurement():
-#     print("Measurement Test 1:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.operations["X"].update([(2,2)])
-#     # new_code.operations["Z"].update([(2,2)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set(),
-#         "Z": set([(2,1),(2,3)])
-#     }:
-#         print(f"PASSED: low weight X error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")
-
-#     print("Measurement Test 2:")
-#     new_code = topological_code.surface_code(5)
-#     # new_code.operations["X"].update([(2,2)])
-#     new_code.operations["Z"].update([(2,2)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set([(1,2),(3,2)]),
-#         "Z": set()
-#     }:
-#         print(f"PASSED: low weight Z error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")
-
-#     print("Measurement Test 3:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.operations["X"].update([(0,0)])
-#     new_code.operations["Z"].update([(0,0)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set([(1,0)]),
-#         "Z": set([(0,1)])
-#     }:
-#         print(f"PASSED: Corner Y error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")
-
-#     print("Measurement Test 4:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.operations["X"].update([(2,0)])
-#     new_code.operations["Z"].update([(2,0)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set([(1,0), (3,0)]),
-#         "Z": set([(2,1)])
-#     }:
-#         print(f"PASSED: Boundary Y error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")
-
-#     print("Measurement Test 5:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.operations["X"].update([(2,0), (2,2), (2,4)])
-#     # new_code.operations["Z"].update([(2,0)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set(),
-#         "Z": set()
-#     }:
-#         print(f"PASSED: Logical X error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")
-
-#     print("Measurement Test 6:")
-#     new_code = topological_code.surface_code(5)
-#     new_code.operations["Z"].update([(0,2), (2,2), (4,2)])
-#     # new_code.operations["Z"].update([(2,0)])
-#     new_code.measure_syndrome()
-#     if new_code.syndromes == {
-#         "X": set(),
-#         "Z": set()
-#     }:
-#         print(f"PASSED: Logical Z error")
-#     else:
-#         print(f"FAILED {new_code.syndromes}")

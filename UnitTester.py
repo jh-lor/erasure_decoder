@@ -1,4 +1,6 @@
 import topological_code 
+import numpy as np
+from math import ceil
 
 class UnitTester:
     def __init__(self, size, code_type, description, correct):
@@ -6,6 +8,8 @@ class UnitTester:
         self.description = description
         self.outcome = correct
         self.passed = -1
+        self.code_type = code_type
+        self.size = size
 
     def test(self):
         self.passed =  True
@@ -38,12 +42,13 @@ class LogicalErrorTester(UnitTester):
             self.passed = False
 
 class DecoderTester(UnitTester):
-    def __init__(self, size, code_type, description, outcome, X_error_list, Z_error_list, erasure_list):
+    def __init__(self, size, code_type, description, outcome, X_error_list, Z_error_list, erasure_list, verbose = False):
         super().__init__(size, code_type, description, outcome)
         self.X_errors = X_error_list
         self.Z_errors = Z_error_list
         self.erasures = erasure_list
         self.results_string = ""
+        self.verbose = verbose
 
     def test(self):
         self.code.operations["X"].update(self.X_errors)
@@ -62,6 +67,8 @@ class DecoderTester(UnitTester):
                 if self.outcome == None:
                    self.results_string = f"PASSED: Syndrome Corrected"
                    self.passed = True
+                   if self.verbose:
+                       print(f"Test: {self.description}, {self.results_string}, Logical Error = {self.code.has_logical_error()}")
                 elif self.code.has_logical_error() == self.outcome:
                     self.results_string = f"PASSED"
                     self.passed = True
@@ -70,3 +77,38 @@ class DecoderTester(UnitTester):
 
     def __str__(self):
         return self.results_string
+
+class RandomErrorTester(UnitTester):
+    def __init__(self, size, code_type, description, correct, p_error, repetitions) -> None:
+        super().__init__(size, code_type, description, correct)
+        self.p_error = p_error
+        self.repetitions = repetitions
+        self.statistics = {
+            "containment": [False]*repetitions,
+            "num_erasures": np.zeros(repetitions, dtype = np.int),
+            "num_X": np.zeros(repetitions, dtype = np.int),
+            "num_Z": np.zeros(repetitions, dtype = np.int)
+        }
+
+    def test(self):
+        for rep in range(self.repetitions):
+            self.code.add_erasure_errors(self.p_error)
+            if not (self.code.operations["X"] in self.code.erasure_set and self.code.operations["Z"] in self.code.erasure_set):
+                self.statistics["containment"][rep] = True
+            self.statistics["num_erasures"][rep] = len(self.code.erasure_set)
+            self.statistics["num_X"][rep] = len(self.code.operations["X"])
+            self.statistics["num_Z"][rep] = len(self.code.operations["Z"])
+
+            self.code = topological_code.surface_code(self.size) if self.code_type == "surface" else topological_code.toric_code(self.size)
+
+        self.statistics_analysis()
+        return 
+
+    def statistics_analysis(self):
+        if any(self.statistics["containment"]):
+            self.results_string = "FAILED: Errors not contained within erasure set"
+        mean_erasures = np.mean(self.statistics['num_erasures'])
+        mean_X = np.mean(self.statistics["num_X"])
+        mean_Z = np.mean(self.statistics["num_Z"])
+        print(f"Expected vs Actual Average Erasures: {ceil(self.size**2/2)*self.p_error} = {mean_erasures}")
+        print(f"Proportion of X and Z errors: {mean_X/mean_erasures}, {mean_Z/mean_erasures}")

@@ -173,7 +173,7 @@ class surface_code(topological_code):
                 chosen_qubits = set()
                 curr_root = self.root_list[stab_type].pop()
                 self.peel_tree_dfs(chosen_qubits, curr_root)
-                print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
+                # print(f"Chosen qubits {chosen_qubits} for {curr_root} for Stab Type {stab_type}")
                 self.operations["X" if stab_type == "Z" else "Z"].symmetric_difference_update(chosen_qubits)
         return
 
